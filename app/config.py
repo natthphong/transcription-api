@@ -3,7 +3,6 @@ from pydantic import Field
 from typing import Optional
 import os
 import yaml
-from sqlalchemy.engine import URL
 
 DEFAULT_CONFIG_PATH = os.getenv("API_CONFIG_PATH", "/app/config")
 DEFAULT_CONFIG_NAME = os.getenv("API_CONFIG_NAME", "config")  # config.yaml
@@ -18,15 +17,8 @@ class DBConfigModel(BaseSettings):
     MaxConnLifeTime: int = 300
 
     def dsn_asyncpg(self) -> str:
-        url = URL.create(
-            drivername="postgresql+asyncpg",
-            username=self.Username.strip(),
-            password=self.Password.strip(),
-            host=self.Host.strip(),
-            port=int(str(self.Port).strip()),
-            database=self.Name.strip(),
-        )
-        return str(url)
+        # async SQLAlchemy driver
+        return f"postgresql+asyncpg://{self.Username}:{self.Password}@{self.Host}:{self.Port}/{self.Name}"
 
 class Settings(BaseSettings):
     app_name: str = Field(default="yt-clipper-api")

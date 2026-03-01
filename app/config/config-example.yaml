@@ -1,0 +1,11 @@
+app_name: "english-listening-api"
+env: "local"
+
+DBConfig:
+  Host: ""
+  Port: "5432"
+  Username: ""
+  Password: ""
+  Name: ""
+  MaxOpenConn: 4
+  MaxConnLifeTime: 300
