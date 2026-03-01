@@ -164,3 +164,5 @@ curl -fsS -X POST \
 
 echo "==> Done. ${APP_NAME} running on :${EXTERNAL_PORT} -> 8080"
 rm -f "${OUTPUT_TAR}"
+echo "==> Cleanup docker image ${IMAGE_NAME}"
+docker rmi "${IMAGE_NAME}" || true
