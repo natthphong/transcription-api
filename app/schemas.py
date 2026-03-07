@@ -7,6 +7,7 @@ class CreateYoutubeJobReq(BaseModel):
     lang: str = "en"
     split_seconds: int = 5   # 5/10/15
     tolerance_seconds: int = 1
+    type_of_transcription: str | None = None
 
 class YoutubeJobRes(BaseModel):
     id: int

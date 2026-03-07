@@ -68,7 +68,7 @@ async def create_job(req: CreateYoutubeJobReq, db: AsyncSession = Depends(get_db
     await db.commit()
     log_event("JOB_CREATED", job_id=job.id)
 
-    asyncio.create_task(process_youtube_job(job.id))
+    asyncio.create_task(process_youtube_job(job.id,req.type_of_transcription))
 
     return YoutubeJobRes(id=job.id, status=job.status or "processing")
 

@@ -75,7 +75,7 @@ def _map_clip_error_code(msg: str) -> str:
     return "VIDEO_DOWNLOAD_FAILED"
 
 
-async def process_youtube_job(job_id: int) -> None:
+async def process_youtube_job(job_id: int, type_of_transcription:str | None) -> None:
     settings = load_settings()
 
     async with SessionLocal() as db:
@@ -100,28 +100,32 @@ async def process_youtube_job(job_id: int) -> None:
         segments = []
         source_transcript = "youtube_api"
         token_usage = 0
-        try:
-            await _set_step(job_id, "TRANSCRIPT_SOURCE_YOUTUBE_API", "youtube transcript api")
-            log_event("TRANSCRIPT_SOURCE_YOUTUBE_API_START", job_id=job_id)
-            segments = await asyncio.to_thread(
-                get_transcript_from_youtube_api, video_id, [job_data["lang"]]
-            )
-            log_event("TRANSCRIPT_SOURCE_YOUTUBE_API_DONE", job_id=job_id, segments=len(segments))
-        except Exception as e:
-            log_event("TRANSCRIPT_SOURCE_YOUTUBE_API_DONE", job_id=job_id, error=str(e))
-
-        if not segments:
+        is_transcription_youtube = True
+        if type_of_transcription is not None and type_of_transcription != "youtube":
+            is_transcription_youtube = False
+        if is_transcription_youtube:
             try:
-                source_transcript = "yt_dlp_vtt"
-                await _set_step(job_id, "TRANSCRIPT_SOURCE_YTDLP", "yt-dlp vtt")
-                log_event("TRANSCRIPT_SOURCE_YTDLP_START", job_id=job_id)
-                vtt_path = await asyncio.to_thread(
-                    download_vtt, job_data["youtube_link"], str(job_dir), job_data["lang"]
+                await _set_step(job_id, "TRANSCRIPT_SOURCE_YOUTUBE_API", "youtube transcript api")
+                log_event("TRANSCRIPT_SOURCE_YOUTUBE_API_START", job_id=job_id)
+                segments = await asyncio.to_thread(
+                    get_transcript_from_youtube_api, video_id, [job_data["lang"]]
                 )
-                segments = await asyncio.to_thread(vtt_to_segments, str(vtt_path))
-                log_event("TRANSCRIPT_SOURCE_YTDLP_DONE", job_id=job_id, segments=len(segments))
+                log_event("TRANSCRIPT_SOURCE_YOUTUBE_API_DONE", job_id=job_id, segments=len(segments))
             except Exception as e:
-                log_event("TRANSCRIPT_SOURCE_YTDLP_DONE", job_id=job_id, error=str(e))
+                log_event("TRANSCRIPT_SOURCE_YOUTUBE_API_DONE", job_id=job_id, error=str(e))
+
+            if not segments:
+                try:
+                    source_transcript = "yt_dlp_vtt"
+                    await _set_step(job_id, "TRANSCRIPT_SOURCE_YTDLP", "yt-dlp vtt")
+                    log_event("TRANSCRIPT_SOURCE_YTDLP_START", job_id=job_id)
+                    vtt_path = await asyncio.to_thread(
+                        download_vtt, job_data["youtube_link"], str(job_dir), job_data["lang"]
+                    )
+                    segments = await asyncio.to_thread(vtt_to_segments, str(vtt_path))
+                    log_event("TRANSCRIPT_SOURCE_YTDLP_DONE", job_id=job_id, segments=len(segments))
+                except Exception as e:
+                    log_event("TRANSCRIPT_SOURCE_YTDLP_DONE", job_id=job_id, error=str(e))
 
         if not segments:
             source_transcript = "openai_transcribe"
