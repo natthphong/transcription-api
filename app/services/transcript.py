@@ -116,9 +116,16 @@ def clean_vtt_text(text: str) -> str:
 def download_vtt(youtube_url: str, out_dir: str, lang: str = "en") -> Path:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+
     _run(
         [
             "yt-dlp",
+            "--extractor-args",
+            "youtube:player_client=android",
+            "--sleep-requests",
+            "1",
+            "--retries",
+            "3",
             "--skip-download",
             "--write-auto-subs",
             "--sub-langs",
@@ -131,11 +138,11 @@ def download_vtt(youtube_url: str, out_dir: str, lang: str = "en") -> Path:
         ],
         cwd=out_dir,
     )
+
     vtts = list(out.glob("*.vtt"))
     if not vtts:
         raise RuntimeError("No VTT subtitle found (auto subs).")
     return vtts[0]
-
 
 def _collapse_progressive(lines: List[str]) -> str:
     if not lines:
@@ -187,10 +194,18 @@ def vtt_to_segments(vtt_path: str) -> List[Dict]:
 def download_audio(youtube_url: str, out_dir: str, filename: str = "audio.mp3") -> Path:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+
     template = str(out / "audio.%(ext)s")
+
     _run(
         [
             "yt-dlp",
+            "--extractor-args",
+            "youtube:player_client=android",
+            "--sleep-requests",
+            "1",
+            "--retries",
+            "3",
             "-x",
             "--audio-format",
             "mp3",
@@ -200,15 +215,18 @@ def download_audio(youtube_url: str, out_dir: str, filename: str = "audio.mp3") 
         ],
         cwd=out_dir,
     )
+
     candidates = list(out.glob("audio.*"))
     if not candidates:
-        raise RuntimeError("Audio download failed: no output file")
-    src = candidates[0]
-    final_path = out / filename
-    if src != final_path:
-        src.replace(final_path)
-    return final_path
+        raise RuntimeError("Audio download failed")
 
+    src = candidates[0]
+    final = out / filename
+
+    if src != final:
+        src.replace(final)
+
+    return final
 
 def _get_audio_duration_s(audio_path: str) -> float:
     cmd = [
