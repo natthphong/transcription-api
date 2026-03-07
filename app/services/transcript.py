@@ -190,6 +190,7 @@ def vtt_to_segments(vtt_path: str) -> List[Dict]:
             prev = caption
         i += 1
 
+
     return segments
 
 
