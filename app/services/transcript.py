@@ -164,6 +164,7 @@ def _collapse_progressive(lines: List[str]) -> str:
 def vtt_to_segments(vtt_path: str) -> List[Dict]:
     text = Path(vtt_path).read_text(encoding="utf-8", errors="ignore").splitlines()
     segments: List[Dict] = []
+    prev = None
     i = 0
     while i < len(text):
         line = text[i].strip()
@@ -184,8 +185,9 @@ def vtt_to_segments(vtt_path: str) -> List[Dict]:
 
         collapsed = _collapse_progressive(caption_lines)
         caption = clean_vtt_text(collapsed)
-        if caption:
+        if caption and caption != prev:
             segments.append({"start_s": start_s, "end_s": end_s, "text": caption})
+            prev = caption
         i += 1
 
     return segments
