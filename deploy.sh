@@ -5,6 +5,7 @@ MSG_UPDATE="${MSG_UPDATE:-update}"
 BRANCH="${BRANCH:-main}"
 PLATFORM="${PLATFORM:-linux/amd64}"
 
+
 # .env optional (export all)
 if [[ -f ".env" ]]; then
   set -a
