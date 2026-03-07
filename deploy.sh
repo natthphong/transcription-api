@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
 # ====== CONFIG ======
 MSG_UPDATE="${MSG_UPDATE:-update}"
 BRANCH="${BRANCH:-main}"
