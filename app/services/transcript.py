@@ -11,6 +11,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from openai import OpenAI
 
 from app.config import load_settings
+from app.core.logger import log_event
 
 
 _SENT_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
@@ -231,7 +232,7 @@ def download_audio(youtube_url: str, out_dir: str, filename: str = "audio.mp3") 
 
     return final
 
-def _get_audio_duration_s(audio_path: str) -> float:
+def get_audio_duration_s(audio_path: str) -> float:
     cmd = [
         "ffprobe",
         "-v",
@@ -244,11 +245,48 @@ def _get_audio_duration_s(audio_path: str) -> float:
     ]
     p = subprocess.run(cmd, capture_output=True, text=True)
     if p.returncode != 0:
-        return 0.0
+        raise RuntimeError(f"ffprobe failed: {p.stderr.strip()}")
     try:
-        return float(p.stdout.strip())
+        duration_s = float(p.stdout.strip())
+        if duration_s <= 0:
+            raise ValueError("duration <= 0")
+        return duration_s
     except Exception:
-        return 0.0
+        raise RuntimeError("Unable to parse audio duration from ffprobe output")
+
+
+def build_time_ranges(duration_s: float, chunk_seconds: int) -> List[Tuple[float, float]]:
+    if duration_s <= 0:
+        return []
+    step = max(1, int(chunk_seconds))
+    ranges: List[Tuple[float, float]] = []
+    start = 0.0
+    while start < duration_s:
+        end = min(duration_s, start + step)
+        ranges.append((start, end))
+        start = end
+    return ranges
+
+
+def cut_audio_chunk_ffmpeg(input_path: str, out_path: str, start_s: float, end_s: float) -> None:
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-ss",
+        f"{start_s}",
+        "-to",
+        f"{end_s}",
+        "-i",
+        input_path,
+        "-vn",
+        "-acodec",
+        "libmp3lame",
+        out_path,
+    ]
+    p = subprocess.run(cmd, capture_output=True, text=True)
+    if p.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed: {p.stderr}")
 
 
 def _text_to_segments(text: str, duration_s: float) -> List[Dict]:
@@ -273,26 +311,86 @@ def _text_to_segments(text: str, duration_s: float) -> List[Dict]:
     return segments
 
 
-def transcribe_with_openai(audio_path: str) -> Tuple[List[Dict], int]:
+def transcribe_audio_in_chunks(
+    audio_path: str,
+    chunk_seconds: int,
+    job_id: Optional[int] = None,
+) -> Tuple[List[Dict], int]:
     settings = load_settings()
     if not settings.OpenAI or not settings.OpenAI.apiKey:
         raise RuntimeError("OpenAI apiKey missing")
 
     client = OpenAI(api_key=settings.OpenAI.apiKey)
-    with open(audio_path, "rb") as f:
-        resp = client.audio.transcriptions.create(
-            model="gpt-4o-mini-transcribe",
-            file=f,
-            response_format="json",
+    duration_s = get_audio_duration_s(audio_path)
+    ranges = build_time_ranges(duration_s, chunk_seconds)
+    chunk_dir = Path(audio_path).parent / "audio_chunks"
+    chunk_dir.mkdir(parents=True, exist_ok=True)
+
+    segments: List[Dict] = []
+    total_token_usage = 0
+
+    for idx, (start_s, end_s) in enumerate(ranges):
+        chunk_path = chunk_dir / f"chunk_{idx:03d}.mp3"
+        log_event(
+            "OPENAI_CHUNK_TRANSCRIBE_START",
+            job_id=job_id,
+            chunk_index=idx,
+            start_s=start_s,
+            end_s=end_s,
         )
+        try:
+            cut_audio_chunk_ffmpeg(audio_path, str(chunk_path), start_s, end_s)
+            with open(chunk_path, "rb") as f:
+                resp = client.audio.transcriptions.create(
+                    model="gpt-4o-mini-transcribe",
+                    file=f,
+                    response_format="json",
+                )
+            text = clean_transcript_text(getattr(resp, "text", "") or "")
+            usage = getattr(resp, "usage", None)
+            chunk_token_usage = 0
+            if usage and getattr(usage, "total_tokens", None) is not None:
+                chunk_token_usage = int(usage.total_tokens)
+            total_token_usage += chunk_token_usage
 
-    text = getattr(resp, "text", "") or ""
-    usage = getattr(resp, "usage", None)
-    token_usage = 0
-    if usage and getattr(usage, "total_tokens", None) is not None:
-        token_usage = int(usage.total_tokens)
-    # Some API responses may not include usage; default to 0 in that case.
+            if text:
+                log_event(
+                    "OPENAI_CHUNK_TRANSCRIBE_DONE",
+                    job_id=job_id,
+                    chunk_index=idx,
+                    start_s=start_s,
+                    end_s=end_s,
+                    text_len=len(text),
+                    token_usage=chunk_token_usage,
+                )
+            else:
+                log_event(
+                    "OPENAI_CHUNK_TRANSCRIBE_EMPTY",
+                    job_id=job_id,
+                    chunk_index=idx,
+                    start_s=start_s,
+                    end_s=end_s,
+                    token_usage=chunk_token_usage,
+                )
+            segments.append({"start_s": start_s, "end_s": end_s, "text": text})
+        except Exception as e:
+            log_event(
+                "OPENAI_CHUNK_TRANSCRIBE_FAILED",
+                job_id=job_id,
+                level="error",
+                chunk_index=idx,
+                start_s=start_s,
+                end_s=end_s,
+                error=str(e),
+            )
+            raise
 
-    duration_s = _get_audio_duration_s(audio_path)
-    segments = _text_to_segments(text, duration_s)
-    return segments, token_usage
+    return segments, total_token_usage
+
+
+def transcribe_with_openai(
+    audio_path: str,
+    chunk_seconds: int = 15,
+    job_id: Optional[int] = None,
+) -> Tuple[List[Dict], int]:
+    return transcribe_audio_in_chunks(audio_path, chunk_seconds, job_id=job_id)

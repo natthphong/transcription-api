@@ -136,7 +136,10 @@ async def process_youtube_job(job_id: int, type_of_transcription:str | None) -> 
                     download_audio, job_data["youtube_link"], str(job_dir), "audio.mp3"
                 )
                 segments, token_usage = await asyncio.to_thread(
-                    transcribe_with_openai, str(audio_path)
+                    transcribe_with_openai,
+                    str(audio_path),
+                    int(job_data["split_seconds"]),
+                    job_id,
                 )
                 log_event(
                     "TRANSCRIPT_SOURCE_OPENAI_DONE",
@@ -153,9 +156,20 @@ async def process_youtube_job(job_id: int, type_of_transcription:str | None) -> 
 
         await _set_step(job_id, "SEGMENT_BUILD", "build segments")
         log_event("SEGMENT_BUILD_START", job_id=job_id)
-        clips = build_clips_from_segments(
-            segments, job_data["split_seconds"], job_data["tolerance_seconds"]
-        )
+        if source_transcript == "openai_transcribe":
+            clips = [
+                {
+                    "seq": idx + 1,
+                    "start_s": seg["start_s"],
+                    "end_s": seg["end_s"],
+                    "text": seg["text"],
+                }
+                for idx, seg in enumerate(segments)
+            ]
+        else:
+            clips = build_clips_from_segments(
+                segments, job_data["split_seconds"], job_data["tolerance_seconds"]
+            )
         log_event("SEGMENT_BUILD_DONE", job_id=job_id, segments=len(segments))
         if not clips:
             raise RuntimeError("no clips generated from subtitles")
