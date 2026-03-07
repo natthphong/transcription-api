@@ -1,4 +1,4 @@
-app_name: "english-listening-api"
+app_name: "yt-clipper-api"
 env: "local"
 
 DBConfig:
@@ -9,3 +9,16 @@ DBConfig:
   Name: ""
   MaxOpenConn: 4
   MaxConnLifeTime: 300
+
+OpenAI:
+  apiKey: ""
+
+Minio:
+  endpoint: "192.168.1.122:9000"
+  region: "us-east-1"
+  bucket: "yt-clips"
+  accessKey: ""
+  secretKey: ""
+
+prefixTTSVoice: "youtube"
+BaseURL: "http://localhost:8080"

@@ -18,10 +18,26 @@ class ClipDetailRes(BaseModel):
     start_s: float
     end_s: float
     message: str
+    clip_path: Optional[str] = None
+    has_clip: bool = False
+    url_video: Optional[str] = None
 
 class YoutubeJobDetailRes(BaseModel):
     id: int
     youtube_link: str
     title: Optional[str]
     status: str
+    created_at: Optional[str] = None
+    process_step: Optional[str] = None
+    progress: Optional[int] = None
+    source_transcript: Optional[str] = None
+    token_usage: Optional[int] = None
+    clip_error_code: Optional[str] = None
+    clip_error_message: Optional[str] = None
     details: List[ClipDetailRes]
+
+
+class YoutubeJobListItemRes(BaseModel):
+    id: int
+    created_at: Optional[str] = None
+    title: Optional[str] = None

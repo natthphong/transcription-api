@@ -14,6 +14,28 @@ def _run(cmd: List[str], cwd: Optional[str] = None) -> str:
 def list_subs(youtube_url: str) -> str:
     return _run(["yt-dlp", "--list-subs", youtube_url])
 
+def download_video(youtube_url: str, out_dir: str, filename: str = "video.mp4") -> Path:
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    template = str(out / "video.%(ext)s")
+    _run([
+        "yt-dlp",
+        "-f", "bv*+ba/b",
+        "--merge-output-format", "mp4",
+        "-o", template,
+        youtube_url,
+    ], cwd=out_dir)
+    candidates = list(out.glob("video.*"))
+    if not candidates:
+        raise RuntimeError("Video download failed: no output file")
+    # Prefer mp4 if available
+    mp4 = next((p for p in candidates if p.suffix.lower() == ".mp4"), None)
+    src = mp4 or candidates[0]
+    final_path = out / filename
+    if src != final_path:
+        src.replace(final_path)
+    return final_path
+
 def download_vtt(youtube_url: str, out_dir: str, lang: str = "en") -> Tuple[Path, bool]:
     """
     Returns (vtt_path, is_auto_caption)

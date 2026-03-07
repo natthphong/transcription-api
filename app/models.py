@@ -21,6 +21,16 @@ class YoutubeTransaction(Base):
     split_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     tolerance_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    process_step: Mapped[str | None] = mapped_column(Text, nullable=True)
+    process_log: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[str | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[str | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    retry_count: Mapped[int | None] = mapped_column(Integer, nullable=True, server_default="0")
+    source_transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
+    token_usage: Mapped[int | None] = mapped_column(Integer, nullable=True, server_default="0")
+    clip_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    clip_error_code: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     details = relationship("YoutubeTransactionDetail", back_populates="transaction")
 

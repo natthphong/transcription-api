@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir -U pip yt-dlp
+RUN pip install --no-cache-dir --upgrade pip
 
 WORKDIR /app
 COPY requirements.txt /app/requirements.txt
