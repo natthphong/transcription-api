@@ -50,7 +50,7 @@ async def create_job(req: CreateYoutubeJobReq, db: AsyncSession = Depends(get_db
     #     raise HTTPException(status_code=400, detail="split_seconds must be 5, 10, or 15")
 
     job = YoutubeTransaction(
-        title=None,
+        title=req.title,
         youtube_link=req.youtube_link,
         user_id_token=req.user_id_token,
         status="processing",
