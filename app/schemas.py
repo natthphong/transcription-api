@@ -10,6 +10,10 @@ class CreateYoutubeJobReq(BaseModel):
     title: str | None = None
     type_of_transcription: str | None = None
 
+class JobTrackRequest(BaseModel):
+    job_id: int
+    seq: int
+
 class YoutubeJobRes(BaseModel):
     id: int
     status: str
@@ -43,3 +47,4 @@ class YoutubeJobListItemRes(BaseModel):
     id: int
     created_at: Optional[str] = None
     title: Optional[str] = None
+    lastest_seq: Optional[int] = None

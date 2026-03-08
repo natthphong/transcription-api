@@ -9,3 +9,8 @@ ADD COLUMN error_code TEXT,
 ADD COLUMN retry_count INTEGER DEFAULT 0,
 ADD COLUMN clip_error_message TEXT,
 ADD COLUMN clip_error_code TEXT;
+
+alter table public.tbl_youtube_transaction
+    add lastest_seq integer;
+
+

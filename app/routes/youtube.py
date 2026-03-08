@@ -3,9 +3,12 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy import update
+
 from app.db import get_db
 from app.models import YoutubeTransaction, YoutubeTransactionDetail
-from app.schemas import CreateYoutubeJobReq, YoutubeJobRes, YoutubeJobDetailRes, ClipDetailRes, YoutubeJobListItemRes
+from app.schemas import CreateYoutubeJobReq, YoutubeJobRes, YoutubeJobDetailRes, ClipDetailRes, YoutubeJobListItemRes, \
+    JobTrackRequest
 from app.services.youtube_jobs import process_youtube_job
 from app.config import load_settings
 from typing import Optional
@@ -44,6 +47,23 @@ def _progress_for_step(step: Optional[str]) -> int:
     }
     return table.get(step, 0)
 
+@router.post("/job/track", response_model=YoutubeJobRes)
+async def track_job(req: JobTrackRequest, db: AsyncSession = Depends(get_db)):
+
+    result = await db.execute(
+        update(YoutubeTransaction)
+        .where(YoutubeTransaction.id == req.job_id)
+        .values(lastest_seq=req.seq)
+        .returning(YoutubeTransaction)
+    )
+
+    job = result.scalar_one_or_none()
+
+    if job is None:
+        raise HTTPException(status_code=404, detail="job not found or not updated")
+
+    await db.commit()
+    return YoutubeJobRes(id=job.id, status=job.status or "processing")
 @router.post("/jobs", response_model=YoutubeJobRes)
 async def create_job(req: CreateYoutubeJobReq, db: AsyncSession = Depends(get_db)):
     # if req.split_seconds not in (5, 10, 15):
@@ -98,6 +118,7 @@ async def list_jobs(user_id_token: str, db: AsyncSession = Depends(get_db)):
                 id=r.id,
                 created_at=str(r.created_at) if r.created_at else None,
                 title=title,
+                lastest_seq=r.lastest_seq
             )
         )
     return items

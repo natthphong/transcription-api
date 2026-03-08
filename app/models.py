@@ -33,6 +33,7 @@ class YoutubeTransaction(Base):
     clip_error_code: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     details = relationship("YoutubeTransactionDetail", back_populates="transaction")
+    lastest_seq: Mapped[int | None] = mapped_column(Integer, nullable=True, server_default="0")
 
 class YoutubeTransactionDetail(Base):
     __tablename__ = "tbl_youtube_transaction_details"
