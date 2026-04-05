@@ -1,6 +1,13 @@
 app_name: "yt-clipper-api"
 env: "local"
 
+Core:
+  publicBaseURL: "http://localhost:8080"
+  nextPublicApiBaseURL: "http://localhost:8080"
+  sessionSecret: "change-me"
+  defaultLocale: "en"
+  compatibilityUseLatestSession: true
+
 DBConfig:
   Host: ""
   Port: "5432"
@@ -12,6 +19,9 @@ DBConfig:
 
 OpenAI:
   apiKey: ""
+  modelChat: "gpt-4o-mini"
+  modelTTS: "gpt-4o-mini-tts"
+  modelSTT: "gpt-4o-mini-transcribe"
 
 Minio:
   endpoint: "192.168.1.122:9000"
@@ -19,6 +29,19 @@ Minio:
   bucket: "yt-clips"
   accessKey: ""
   secretKey: ""
+
+Line:
+  liffId: ""
+  channelId: ""
+  channelSecret: ""
+  loginRedirectURI: "http://localhost:3000/page/webhook-line"
+  botChannelAccessToken: ""
+
+Optional:
+  databaseURL: ""
+  redisURL: ""
+  storageBucketName: "yt-clips"
+  youtubeApiKey: ""
 
 prefixTTSVoice: "youtube"
 BaseURL: "http://localhost:8080"
