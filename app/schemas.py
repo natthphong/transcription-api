@@ -101,6 +101,10 @@ class RefreshSession(BaseModel):
 
 
 class LoginRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"username": "alex", "password": "sorbet-demo"}}
+    )
+
     username: str = Field(min_length=1, max_length=100)
     password: str = Field(min_length=1, max_length=255)
 
@@ -136,6 +140,20 @@ class PersonalizationOptions(BaseModel):
 
 
 class PersonalizationSubmitRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "nativeLanguageId": "thai",
+                "targetLanguageId": "english",
+                "levelId": "intermediate",
+                "weeklyFocusId": "steady",
+                "voiceId": "sorbet",
+                "tutorModeId": "coach",
+                "interests": ["conversation", "listening"],
+            }
+        }
+    )
+
     nativeLanguageId: Optional[str] = None
     targetLanguageId: Optional[str] = None
     levelId: Optional[str] = None
@@ -234,6 +252,8 @@ class FlashcardSession(BaseModel):
 
 
 class FlashcardStartRequest(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"example": {"deckId": "deck-french-gastronomy"}})
+
     deckId: Optional[str] = None
 
 
@@ -243,6 +263,10 @@ class FlashcardStartBody(BaseModel):
 
 
 class FlashcardAnswerRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"sessionId": "review-abc123", "answer": "good"}}
+    )
+
     sessionId: str
     answer: str
 
@@ -253,6 +277,8 @@ class FlashcardAnswerBody(BaseModel):
 
 
 class FlashcardFinishRequest(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"example": {"sessionId": "review-abc123"}})
+
     sessionId: str
 
 
@@ -327,6 +353,19 @@ class LessonDetail(LessonSummary):
 
 
 class LessonCreateRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "url": "https://youtube.com/watch?v=abc123xyz00",
+                "sourceLanguageId": "english",
+                "targetLanguageId": "thai",
+                "categoryId": "travel",
+                "voiceId": "sorbet",
+                "autoDetect": True,
+            }
+        }
+    )
+
     url: str
     sourceLanguageId: str
     targetLanguageId: str
@@ -401,18 +440,48 @@ class TutorSession(TutorSessionSummary):
 
 
 class TutorSessionCreateRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "lessonId": "lesson-paris-bistro",
+                "clipId": "clip-youtube-paris",
+                "modeId": "coach",
+            }
+        }
+    )
+
     lessonId: str
     clipId: str
     modeId: str
 
 
 class TutorMessageRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "sessionId": "session-paris-bistro",
+                "lessonId": "lesson-paris-bistro",
+                "prompt": "Explain this line in simple English and Thai.",
+            }
+        }
+    )
+
     sessionId: str
     lessonId: str
     prompt: str
 
 
 class TutorFeedbackRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "sessionId": "session-paris-bistro",
+                "rating": "helpful",
+                "note": "Clear explanation with Thai support.",
+            }
+        }
+    )
+
     sessionId: str
     rating: str
     note: Optional[str] = None
@@ -453,6 +522,19 @@ class LineLoginBody(BaseModel):
 
 
 class LineProfileSyncRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "userId": "Uxxxxxxxx",
+                "displayName": "Alex on LINE",
+                "statusMessage": "Hello from LINE",
+                "pictureUrl": "https://profile.line-scdn.net/...",
+                "language": "th",
+                "liffId": "165xxxxxxxxx-xxxxxxx",
+            }
+        }
+    )
+
     userId: str
     displayName: str
     statusMessage: str | None = None
@@ -493,6 +575,10 @@ class VocabDashboard(BaseModel):
 
 
 class VocabReviewAnswerRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"sessionId": "review-abc123", "answer": "good"}}
+    )
+
     sessionId: str
     answer: str
 
@@ -503,6 +589,26 @@ class VocabReviewAnswerBody(BaseModel):
 
 
 class ProfileUpdateRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "nativeLanguageId": "thai",
+                "targetLanguageId": "english",
+                "levelId": "intermediate",
+                "weeklyFocusId": "steady",
+                "voiceId": "atelier",
+                "tutorModeId": "grammar",
+                "appLocale": "th",
+                "dailyGoalMinutes": 20,
+                "interests": ["travel", "conversation"],
+                "practiceReminders": True,
+                "weeklyDigest": True,
+                "tutorFollowUps": True,
+                "autoPlayPronunciation": True,
+            }
+        }
+    )
+
     nativeLanguageId: Optional[str] = None
     targetLanguageId: Optional[str] = None
     levelId: Optional[str] = None
@@ -519,6 +625,17 @@ class ProfileUpdateRequest(BaseModel):
 
 
 class TTSRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "text": "Bonjour, comment ça va ?",
+                "voiceId": "sorbet",
+                "lessonId": "lesson-paris-bistro",
+                "clipId": "clip-youtube-paris",
+            }
+        }
+    )
+
     text: str
     voiceId: Optional[str] = None
     lessonId: Optional[str] = None
@@ -531,6 +648,15 @@ class TTSBody(BaseModel):
 
 
 class STTRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "audioBase64": "UklGRiQAAABXQVZFZm10IBAAAAABAAEA...",
+                "language": "en",
+            }
+        }
+    )
+
     audioBase64: Optional[str] = None
     text: Optional[str] = None
     language: Optional[str] = None
@@ -543,6 +669,15 @@ class STTBody(BaseModel):
 
 
 class AIGenerateLessonRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "lessonId": "lesson-paris-bistro",
+                "transcript": "Bonjour tout le monde...",
+            }
+        }
+    )
+
     lessonId: Optional[str] = None
     clipId: Optional[str] = None
     transcript: Optional[str] = None
@@ -554,6 +689,8 @@ class AIGenerateLessonBody(BaseModel):
 
 
 class AIGenerateFlashcardsRequest(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"example": {"lessonId": "lesson-paris-bistro"}})
+
     lessonId: str
 
 
@@ -563,6 +700,16 @@ class AIGenerateFlashcardsBody(BaseModel):
 
 
 class AIChatRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "prompt": "Summarize the lesson in Thai and extract three travel phrases.",
+                "lessonId": "lesson-paris-bistro",
+                "sessionId": "session-paris-bistro",
+            }
+        }
+    )
+
     prompt: str
     lessonId: Optional[str] = None
     sessionId: Optional[str] = None
@@ -573,6 +720,20 @@ class AIChatBody(BaseModel):
 
 
 class CreateYoutubeJobReq(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "youtube_link": "https://www.youtube.com/watch?v=7IyiKqFQAnk",
+                "user_id_token": "device-123",
+                "lang": "en",
+                "split_seconds": 15,
+                "tolerance_seconds": 1,
+                "title": "Travel Listening Practice",
+                "type_of_transcription": "openai_transcribe",
+            }
+        }
+    )
+
     youtube_link: str
     user_id_token: str = Field(min_length=1, max_length=36)
     lang: str = "en"
@@ -583,6 +744,8 @@ class CreateYoutubeJobReq(BaseModel):
 
 
 class JobTrackRequest(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"example": {"job_id": 42, "seq": 5}})
+
     job_id: int
     seq: int
 

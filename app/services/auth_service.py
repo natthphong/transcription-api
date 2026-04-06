@@ -162,6 +162,24 @@ async def create_session(db: AsyncSession, user: AppUser) -> AppUserSession:
     return session
 
 
+async def _resolve_public_session_context(db: AsyncSession) -> SessionContext:
+    user = await ensure_seed_data(db)
+    session = (
+        await db.execute(
+            select(AppUserSession)
+            .where(
+                AppUserSession.user_id == user.id,
+                AppUserSession.is_active.is_(True),
+            )
+            .order_by(desc(AppUserSession.updated_at), desc(AppUserSession.created_at))
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if session is None:
+        session = await create_session(db, user)
+    return SessionContext(user=user, session=session)
+
+
 async def resolve_session(
     db: AsyncSession,
     request: Request,
@@ -189,14 +207,7 @@ async def resolve_session(
 
     settings = load_settings()
     if not session and allow_compatibility_fallback and settings.Core and settings.Core.compatibilityUseLatestSession:
-        session = (
-            await db.execute(
-                select(AppUserSession)
-                .where(AppUserSession.is_active.is_(True))
-                .order_by(desc(AppUserSession.updated_at), desc(AppUserSession.created_at))
-                .limit(1)
-            )
-        ).scalar_one_or_none()
+        return await _resolve_public_session_context(db)
 
     if not session:
         raise ApiError(401, "UNAUTHORIZED", "missing or invalid session")

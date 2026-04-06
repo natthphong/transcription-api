@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import load_settings
+from app.core.openapi import API_DESCRIPTION, OPENAPI_TAGS
 from app.routes.ai import router as ai_router
 from app.routes.auth import router as auth_router
 from app.routes.bootstrap import router as bootstrap_router
@@ -43,10 +44,15 @@ allowed_origins = [
 app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
-    description=(
-        "Language-learning API for YouTube lesson import, tutor sessions, vocabulary review, "
-        "profile settings, and LINE-ready integration flows."
-    ),
+    description=API_DESCRIPTION,
+    openapi_tags=OPENAPI_TAGS,
+    summary="Language-learning API for lessons, tutor, vocab, LINE, and AI workflows.",
+    servers=[
+        {
+            "url": settings.public_base_url(),
+            "description": "Configured public base URL",
+        }
+    ],
 )
 
 app.add_middleware(
@@ -79,7 +85,12 @@ app.include_router(ai_router)
 app.include_router(youtube_router)
 
 
-@app.get("/", tags=["Meta"])
+@app.get(
+    "/",
+    tags=["Meta"],
+    summary="Service Root",
+    description="Return service identity, active environment, and the public base URL used for generated links.",
+)
 async def root():
     return envelope(
         {

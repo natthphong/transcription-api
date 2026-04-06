@@ -47,7 +47,12 @@ def _progress_for_step(step: Optional[str]) -> int:
     }
     return table.get(step, 0)
 
-@router.post("/job/track", response_model=YoutubeJobRes)
+@router.post(
+    "/job/track",
+    response_model=YoutubeJobRes,
+    summary="Track Legacy YouTube Job Progress",
+    description="Update the last processed clip sequence for a legacy YouTube transaction job.",
+)
 async def track_job(req: JobTrackRequest, db: AsyncSession = Depends(get_db)):
 
     result = await db.execute(
@@ -64,7 +69,12 @@ async def track_job(req: JobTrackRequest, db: AsyncSession = Depends(get_db)):
 
     await db.commit()
     return YoutubeJobRes(id=job.id, status=job.status or "processing")
-@router.post("/jobs", response_model=YoutubeJobRes)
+@router.post(
+    "/jobs",
+    response_model=YoutubeJobRes,
+    summary="Create Legacy YouTube Job",
+    description="Create a raw YouTube processing job in the legacy pipeline and start transcript and clip generation asynchronously.",
+)
 async def create_job(req: CreateYoutubeJobReq, db: AsyncSession = Depends(get_db)):
     # if req.split_seconds not in (5, 10, 15):
     #     raise HTTPException(status_code=400, detail="split_seconds must be 5, 10, or 15")
@@ -93,7 +103,12 @@ async def create_job(req: CreateYoutubeJobReq, db: AsyncSession = Depends(get_db
     return YoutubeJobRes(id=job.id, status=job.status or "processing")
 
 
-@router.get("/jobs", response_model=list[YoutubeJobListItemRes])
+@router.get(
+    "/jobs",
+    response_model=list[YoutubeJobListItemRes],
+    summary="List Legacy YouTube Jobs",
+    description="List legacy YouTube jobs by external user token for polling and history views.",
+)
 async def list_jobs(user_id_token: str, db: AsyncSession = Depends(get_db)):
     rows = (await db.execute(
         select(YoutubeTransaction)
@@ -123,7 +138,12 @@ async def list_jobs(user_id_token: str, db: AsyncSession = Depends(get_db)):
         )
     return items
 
-@router.get("/jobs/{job_id}", response_model=YoutubeJobDetailRes)
+@router.get(
+    "/jobs/{job_id}",
+    response_model=YoutubeJobDetailRes,
+    summary="Get Legacy YouTube Job Detail",
+    description="Return a legacy YouTube job with processing progress, transcript source, clip artifacts, and per-segment details.",
+)
 async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
     job = (await db.execute(select(YoutubeTransaction).where(YoutubeTransaction.id == job_id))).scalar_one_or_none()
     if not job:

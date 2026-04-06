@@ -29,30 +29,55 @@ from app.services.line_service import (
 router = APIRouter(prefix="/api/v1/line", tags=["LINE"])
 
 
-@router.get("/config", response_model=ApiEnvelope[LineConfigBody], summary="LINE Frontend Config")
+@router.get(
+    "/config",
+    response_model=ApiEnvelope[LineConfigBody],
+    summary="LINE Frontend Config",
+    description="Return frontend-safe LIFF configuration, enablement flags, redirect URI, and webhook path metadata.",
+)
 async def line_config():
     return success(get_line_config(), message="success")
 
 
-@router.get("/status", response_model=ApiEnvelope[LineStatus], summary="LINE Connection Status")
+@router.get(
+    "/status",
+    response_model=ApiEnvelope[LineStatus],
+    summary="LINE Connection Status",
+    description="Return whether the current learner is linked to a LINE account and when the profile was last synced.",
+)
 async def line_status(request: Request, db: AsyncSession = Depends(ensure_seeded_db)):
     context = await resolve_session(db, request, allow_compatibility_fallback=True)
     return success(await get_line_status(db, context.user), message="success")
 
 
-@router.post("/login", response_model=ApiEnvelope[LineLoginBody], summary="Start LINE Login")
+@router.post(
+    "/login",
+    response_model=ApiEnvelope[LineLoginBody],
+    summary="Start LINE Login",
+    description="Build the LINE Login redirect URL and state token used by frontend login entry flows.",
+)
 async def line_login():
     return created(start_line_login(), message="line login started")
 
 
-@router.post("/webhook", response_model=ApiEnvelope[LineWebhookBody], summary="Receive LINE Webhook")
+@router.post(
+    "/webhook",
+    response_model=ApiEnvelope[LineWebhookBody],
+    summary="Receive LINE Webhook",
+    description="Accept LINE Messaging API webhooks and verify `x-line-signature` with the configured channel secret.",
+)
 async def line_webhook(request: Request, x_line_signature: str | None = Header(default=None), db: AsyncSession = Depends(ensure_seeded_db)):
     body = await request.body()
     verify_line_signature(x_line_signature, body)
     return success(accept_webhook(), message="webhook accepted")
 
 
-@router.get("/profile", response_model=ApiEnvelope[LineProfile], summary="LINE Profile")
+@router.get(
+    "/profile",
+    response_model=ApiEnvelope[LineProfile],
+    summary="LINE Profile",
+    description="Return the currently linked LINE profile snapshot for the resolved learner account.",
+)
 async def line_profile(request: Request, db: AsyncSession = Depends(ensure_seeded_db)):
     context = await resolve_session(db, request, allow_compatibility_fallback=True)
     return success(await get_line_profile(db, context.user), message="success")

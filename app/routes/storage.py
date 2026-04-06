@@ -4,10 +4,14 @@ from minio.error import S3Error
 
 from app.services.storage import get_object_stream
 
-router = APIRouter(tags=["storage"])
+router = APIRouter(tags=["Storage"])
 
 
-@router.get("/file")
+@router.get(
+    "/file",
+    summary="Stream Stored File",
+    description="Stream a MinIO-backed object such as a generated clip, transcript audio, or tutor speech asset by object key.",
+)
 async def get_file(key: str = Query(..., min_length=1)):
     try:
         obj, content_type, size = get_object_stream(key)

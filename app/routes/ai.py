@@ -25,17 +25,32 @@ from app.services.lesson_service import get_lesson_detail_for_user, regenerate_l
 router = APIRouter(prefix="/api/v1", tags=["AI"])
 
 
-@router.post("/tts", response_model=ApiEnvelope[TTSBody], summary="Generate Speech")
+@router.post(
+    "/tts",
+    response_model=ApiEnvelope[TTSBody],
+    summary="Generate Speech",
+    description="Generate pronunciation or tutor playback audio from text and return the generated audio URL.",
+)
 async def tts(payload: TTSRequest):
     return created(synthesize_tts(payload.text, payload.voiceId), message="speech generated")
 
 
-@router.post("/stt", response_model=ApiEnvelope[STTBody], summary="Transcribe Speech")
+@router.post(
+    "/stt",
+    response_model=ApiEnvelope[STTBody],
+    summary="Transcribe Speech",
+    description="Transcribe learner audio input or accept plain text fallback and return normalized transcript output.",
+)
 async def stt(payload: STTRequest):
     return created(transcribe_audio(payload.audioBase64, payload.text, payload.language), message="transcript created")
 
 
-@router.post("/ai/generate-lesson", response_model=ApiEnvelope[AIGenerateLessonBody], summary="Generate Lesson Artifacts")
+@router.post(
+    "/ai/generate-lesson",
+    response_model=ApiEnvelope[AIGenerateLessonBody],
+    summary="Generate Lesson Artifacts",
+    description="Regenerate or confirm lesson learning artifacts from transcript-backed lesson content.",
+)
 async def generate_lesson(payload: AIGenerateLessonRequest, request: Request, db: AsyncSession = Depends(ensure_seeded_db)):
     context = await resolve_session(db, request, allow_compatibility_fallback=True)
     lesson_id = payload.lessonId
@@ -47,14 +62,24 @@ async def generate_lesson(payload: AIGenerateLessonRequest, request: Request, db
     return created({"lessonId": lesson_id, "status": "ready"}, message="lesson generated")
 
 
-@router.post("/ai/generate-flashcards", response_model=ApiEnvelope[AIGenerateFlashcardsBody], summary="Generate Flashcards")
+@router.post(
+    "/ai/generate-flashcards",
+    response_model=ApiEnvelope[AIGenerateFlashcardsBody],
+    summary="Generate Flashcards",
+    description="Extract or rebuild lesson flashcards from lesson transcript blocks and vocabulary candidates.",
+)
 async def generate_flashcards(payload: AIGenerateFlashcardsRequest, request: Request, db: AsyncSession = Depends(ensure_seeded_db)):
     context = await resolve_session(db, request, allow_compatibility_fallback=True)
     count = await regenerate_lesson_from_transcript(db, context.user, payload.lessonId)
     return created({"deckId": "deck-french-gastronomy", "cardsGenerated": count}, message="flashcards generated")
 
 
-@router.post("/ai/chat", response_model=ApiEnvelope[AIChatBody], summary="Generic AI Chat")
+@router.post(
+    "/ai/chat",
+    response_model=ApiEnvelope[AIChatBody],
+    summary="Generic AI Chat",
+    description="Return a generic assistant reply, optionally grounded in a lesson context.",
+)
 async def ai_chat(payload: AIChatRequest, request: Request, db: AsyncSession = Depends(ensure_seeded_db)):
     context = await resolve_session(db, request, allow_compatibility_fallback=True)
     context_text = None

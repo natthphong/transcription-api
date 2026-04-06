@@ -40,7 +40,7 @@ Error example:
 ## Important SSR Compatibility Note
 
 - The current frontend server-side fetch layer does not forward browser auth cookies to the backend explicitly.
-- To keep the existing frontend working in real mode, the backend supports a development compatibility fallback: if no auth token is present, it uses the most recently active backend session.
+- To keep the existing frontend working in real mode, the backend supports an open-access compatibility fallback: if no auth token is present, it resolves a deterministic compatibility learner session.
 - This is intended for the current frontend integration path and local/dev use.
 - For stricter multi-user production mode later, forward cookies or bearer tokens from the frontend server runtime.
 
@@ -271,7 +271,7 @@ Error example:
 
 ## Production Hardening Follow-Ups
 
-- Forward cookies or bearer tokens in frontend SSR to remove the latest-active-session compatibility fallback.
+- Forward cookies or bearer tokens in frontend SSR to stop relying on the compatibility learner fallback.
 - Add a real migration runner and deployment migration step.
 - Replace naive fallback AI/TTS/STT behavior with fully configured OpenAI or vendor-specific production paths.
 - Add rate limiting and Redis-backed session/cache support if traffic grows.
