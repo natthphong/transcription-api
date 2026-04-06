@@ -75,6 +75,20 @@ app.include_router(line_router)
 app.include_router(ai_router)
 app.include_router(youtube_router)
 
+# Proxy-compatible aliases for frontend deployments that mount the service under `/youtube`.
+app.include_router(auth_router, prefix="/youtube")
+app.include_router(bootstrap_router, prefix="/youtube")
+app.include_router(onboarding_router, prefix="/youtube")
+app.include_router(config_router, prefix="/youtube")
+app.include_router(home_router, prefix="/youtube")
+app.include_router(lessons_router, prefix="/youtube")
+app.include_router(tutor_router, prefix="/youtube")
+app.include_router(vocab_router, prefix="/youtube")
+app.include_router(flashcards_router, prefix="/youtube")
+app.include_router(profile_router, prefix="/youtube")
+app.include_router(line_router, prefix="/youtube")
+app.include_router(ai_router, prefix="/youtube")
+
 
 @app.get(
     "/",

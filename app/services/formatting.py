@@ -28,8 +28,17 @@ def humanize_relative(target: datetime | None, now: datetime | None = None) -> s
     if target is None:
         return "Recently"
     normalized_target = ensure_utc_datetime(target)
-    normalized_now = ensure_utc_datetime(now) or utc_now()
-    delta = normalized_now - normalized_target
+    normalized_now = ensure_utc_datetime(now or utc_now())
+    if normalized_target is None or normalized_now is None:
+        return "Recently"
+    try:
+        delta = normalized_now - normalized_target
+    except TypeError:
+        normalized_target = ensure_utc_datetime(normalized_target.replace(tzinfo=timezone.utc))
+        normalized_now = ensure_utc_datetime(normalized_now.replace(tzinfo=timezone.utc))
+        if normalized_target is None or normalized_now is None:
+            return "Recently"
+        delta = normalized_now - normalized_target
     seconds = max(0, int(delta.total_seconds()))
     minutes = seconds // 60
     hours = minutes // 60
@@ -51,7 +60,9 @@ def due_label(due_at: datetime | None, status_id: str, now: datetime | None = No
     if due_at is None:
         return "Today"
     normalized_due_at = ensure_utc_datetime(due_at)
-    normalized_now = ensure_utc_datetime(now) or utc_now()
+    normalized_now = ensure_utc_datetime(now or utc_now())
+    if normalized_due_at is None or normalized_now is None:
+        return "Today"
     diff_days = (normalized_due_at.date() - normalized_now.date()).days
     if diff_days <= 0:
         return "Today"
