@@ -1,18 +1,28 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.routes.deps import ensure_seeded_db
-from app.schemas import ApiEnvelope, LineConfigBody, LineLoginBody, LineProfile, LineStatus, LineWebhookBody
-from app.services.api import created, success
-from app.services.auth_service import resolve_session
+from app.schemas import (
+    ApiEnvelope,
+    LineConfigBody,
+    LineLoginBody,
+    LineProfile,
+    LineProfileSyncBody,
+    LineProfileSyncRequest,
+    LineStatus,
+    LineWebhookBody,
+)
+from app.services.api import ApiError, created, success
+from app.services.auth_service import resolve_session, set_session_cookies
 from app.services.line_service import (
     accept_webhook,
     get_line_config,
     get_line_profile,
     get_line_status,
     start_line_login,
+    sync_line_profile,
     verify_line_signature,
 )
 
@@ -46,3 +56,32 @@ async def line_webhook(request: Request, x_line_signature: str | None = Header(d
 async def line_profile(request: Request, db: AsyncSession = Depends(ensure_seeded_db)):
     context = await resolve_session(db, request, allow_compatibility_fallback=True)
     return success(await get_line_profile(db, context.user), message="success")
+
+
+@router.post(
+    "/profile",
+    response_model=ApiEnvelope[LineProfileSyncBody],
+    summary="Sync LIFF Profile",
+    description=(
+        "Persist the LIFF profile returned by `liff.getProfile()`, store the LINE user id on the backend, "
+        "and issue a backend session so the frontend can continue into authenticated screens."
+    ),
+)
+async def line_profile_sync(
+    payload: LineProfileSyncRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(ensure_seeded_db),
+):
+    context = None
+    try:
+        context = await resolve_session(db, request, allow_compatibility_fallback=False)
+    except ApiError as exc:
+        if exc.code != "UNAUTHORIZED":
+            raise
+        context = None
+
+    body, session = await sync_line_profile(db, payload, current_user=context.user if context else None)
+    response = created(body, message="line profile synced")
+    set_session_cookies(response, session)
+    return response

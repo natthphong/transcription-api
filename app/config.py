@@ -61,7 +61,9 @@ class CoreConfig(BaseModel):
 
 
 class LineConfig(BaseModel):
-    liffId: str = Field(default_factory=lambda: os.getenv("NEXT_PUBLIC_LIFF_ID", ""))
+    liffId: str = Field(
+        default_factory=lambda: os.getenv("NEXT_PUBLIC_LINE_LIFF_ID", os.getenv("NEXT_PUBLIC_LIFF_ID", ""))
+    )
     channelId: str = Field(default_factory=lambda: os.getenv("LINE_CHANNEL_ID", ""))
     channelSecret: str = Field(default_factory=lambda: os.getenv("LINE_CHANNEL_SECRET", ""))
     loginRedirectURI: str = Field(default_factory=lambda: os.getenv("LINE_LOGIN_REDIRECT_URI", ""))

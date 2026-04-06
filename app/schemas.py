@@ -452,6 +452,22 @@ class LineLoginBody(BaseModel):
     state: str
 
 
+class LineProfileSyncRequest(BaseModel):
+    userId: str
+    displayName: str
+    statusMessage: str | None = None
+    pictureUrl: str | None = None
+    language: str | None = None
+    liffId: str | None = None
+
+
+class LineProfileSyncBody(BaseModel):
+    connected: bool
+    redirectTo: str
+    profile: LineProfile
+    session: AuthSession
+
+
 class LineWebhookBody(BaseModel):
     accepted: bool
 

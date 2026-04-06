@@ -120,6 +120,7 @@ Error example:
 - `POST /api/v1/line/login`
 - `POST /api/v1/line/webhook`
 - `GET /api/v1/line/profile`
+- `POST /api/v1/line/profile`
 
 ### AI / Speech
 
@@ -189,6 +190,19 @@ Error example:
 }
 ```
 
+### Sync LIFF Profile
+
+```json
+{
+  "userId": "Uxxxxxxxx",
+  "displayName": "Alex on LINE",
+  "statusMessage": "Hello from LINE",
+  "pictureUrl": "https://profile.line-scdn.net/...",
+  "language": "th",
+  "liffId": "165xxxxxxxxx-xxxxxxx"
+}
+```
+
 ## Field Semantics
 
 - `LocalizedText`: `{ "en": "...", "th": "..." }`
@@ -215,7 +229,11 @@ Error example:
 ## LINE / LIFF Notes
 
 - `GET /api/v1/line/config` is safe for frontend use and should be the source of truth for LIFF enablement.
+- `GET /api/v1/line/config` returns `liffId` from backend config. Backend supports env fallback order: `NEXT_PUBLIC_LINE_LIFF_ID` then `NEXT_PUBLIC_LIFF_ID`.
+- Frontend LIFF bridge page should initialize LIFF with the frontend env var and then sync the LIFF profile back to backend with `POST /api/v1/line/profile`.
+- `POST /api/v1/line/profile` stores the LINE `userId` in `app_line_accounts`, updates the LINE profile snapshot, and sets backend auth cookies for the learner.
 - `POST /api/v1/line/webhook` verifies `x-line-signature` with `LINE_CHANNEL_SECRET`.
+- `LINE_CHANNEL_SECRET` and `LINE_BOT_CHANNEL_ACCESS_TOKEN` stay server-side and are intended for future notification / bot messaging flows.
 - If LINE config is missing, `line/config` reports `enabled: false` and `mockMode: true`.
 
 ## Real Mode Migration

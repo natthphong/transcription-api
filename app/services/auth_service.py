@@ -84,6 +84,10 @@ def _set_session_cookies(response: Response, session: AppUserSession) -> None:
     )
 
 
+def set_session_cookies(response: Response, session: AppUserSession) -> None:
+    _set_session_cookies(response, session)
+
+
 def clear_session_cookies(response: Response) -> None:
     response.delete_cookie(ACCESS_COOKIE_NAME)
     response.delete_cookie(REFRESH_COOKIE_NAME)
