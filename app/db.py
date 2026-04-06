@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+try:
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+except ImportError:  # SQLAlchemy 1.4 compatibility
+    async_sessionmaker = None
 
 from app.config import load_settings
 
@@ -16,7 +22,10 @@ engine = create_async_engine(
     pool_pre_ping=True,
 )
 
-SessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+if async_sessionmaker is not None:
+    SessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+else:
+    SessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def get_db() -> AsyncSession:

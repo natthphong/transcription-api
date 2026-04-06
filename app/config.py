@@ -3,17 +3,16 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 import yaml
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 
 DEFAULT_CONFIG_PATH = os.getenv("API_CONFIG_PATH", "/app/config")
 DEFAULT_CONFIG_NAME = os.getenv("API_CONFIG_NAME", "config")
 
 
-class DBConfigModel(BaseSettings):
+class DBConfigModel(BaseModel):
     Host: str = Field(default_factory=lambda: os.getenv("DB_HOST", ""))
     Port: str = Field(default_factory=lambda: os.getenv("DB_PORT", "5432"))
     Username: str = Field(default_factory=lambda: os.getenv("DB_USERNAME", ""))
@@ -29,7 +28,7 @@ class DBConfigModel(BaseSettings):
         )
 
 
-class MinioConfig(BaseSettings):
+class MinioConfig(BaseModel):
     endpoint: str = Field(default_factory=lambda: os.getenv("MINIO_ENDPOINT", ""))
     region: str = Field(default_factory=lambda: os.getenv("MINIO_REGION", "us-east-1"))
     bucket: str = Field(
@@ -39,14 +38,14 @@ class MinioConfig(BaseSettings):
     secretKey: str = Field(default_factory=lambda: os.getenv("MINIO_SECRET_KEY", ""))
 
 
-class OpenAIConfig(BaseSettings):
+class OpenAIConfig(BaseModel):
     apiKey: str = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
     modelChat: str = Field(default_factory=lambda: os.getenv("OPENAI_MODEL_CHAT", "gpt-4o-mini"))
     modelTTS: str = Field(default_factory=lambda: os.getenv("OPENAI_MODEL_TTS", "gpt-4o-mini-tts"))
     modelSTT: str = Field(default_factory=lambda: os.getenv("OPENAI_MODEL_STT", "gpt-4o-mini-transcribe"))
 
 
-class CoreConfig(BaseSettings):
+class CoreConfig(BaseModel):
     publicBaseURL: str = Field(
         default_factory=lambda: os.getenv(
             "PUBLIC_BASE_URL",
@@ -61,7 +60,7 @@ class CoreConfig(BaseSettings):
     compatibilityUseLatestSession: bool = True
 
 
-class LineConfig(BaseSettings):
+class LineConfig(BaseModel):
     liffId: str = Field(default_factory=lambda: os.getenv("NEXT_PUBLIC_LIFF_ID", ""))
     channelId: str = Field(default_factory=lambda: os.getenv("LINE_CHANNEL_ID", ""))
     channelSecret: str = Field(default_factory=lambda: os.getenv("LINE_CHANNEL_SECRET", ""))
@@ -71,7 +70,7 @@ class LineConfig(BaseSettings):
     )
 
 
-class OptionalInfraConfig(BaseSettings):
+class OptionalInfraConfig(BaseModel):
     databaseURL: str = Field(default_factory=lambda: os.getenv("DATABASE_URL", ""))
     redisURL: str = Field(default_factory=lambda: os.getenv("REDIS_URL", ""))
     storageBucketName: str = Field(default_factory=lambda: os.getenv("STORAGE_BUCKET_NAME", ""))
@@ -82,17 +81,17 @@ class Settings(BaseSettings):
     app_name: str = Field(default_factory=lambda: os.getenv("APP_NAME", "yt-clipper-api"))
     env: str = Field(default_factory=lambda: os.getenv("ENV", "local"))
 
-    DBConfig: Optional[DBConfigModel] = None
-    Minio: Optional[MinioConfig] = None
-    OpenAI: Optional[OpenAIConfig] = None
-    Core: Optional[CoreConfig] = None
-    Line: Optional[LineConfig] = None
-    Optional: Optional[OptionalInfraConfig] = None
+    DBConfig: DBConfigModel | None = None
+    Minio: MinioConfig | None = None
+    OpenAI: OpenAIConfig | None = None
+    Core: CoreConfig | None = None
+    Line: LineConfig | None = None
+    Optional: OptionalInfraConfig | None = None
 
-    BaseURL: Optional[str] = Field(default_factory=lambda: os.getenv("BASE_URL", ""))
+    BaseURL: str | None = Field(default_factory=lambda: os.getenv("BASE_URL", ""))
     prefixTTSVoice: str = Field(default_factory=lambda: os.getenv("PREFIX_TTS_VOICE", "youtube"))
 
-    def database_url(self) -> Optional[str]:
+    def database_url(self) -> str | None:
         if self.Optional and self.Optional.databaseURL:
             return self._normalize_database_url(self.Optional.databaseURL)
         if self.DBConfig and self.DBConfig.Host:
