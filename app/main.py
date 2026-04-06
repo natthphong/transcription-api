@@ -31,15 +31,6 @@ from app.services.api import (
 )
 
 settings = load_settings()
-allowed_origins = [
-    origin
-    for origin in {
-        settings.public_base_url(),
-        settings.Core.nextPublicApiBaseURL if settings.Core else "",
-        "http://localhost:3000",
-    }
-    if origin
-]
 
 app = FastAPI(
     title=settings.app_name,
@@ -57,7 +48,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
