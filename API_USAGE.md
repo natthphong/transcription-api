@@ -277,6 +277,8 @@ LIFF profile sync example:
 - `POST /youtube/translate`
   - Translates transcript detail rows for one legacy YouTube job into a target language.
   - Uses OpenAI `gpt-4o-mini`.
+  - Sends the full pending `id + message` list in one AI call instead of translating row by row.
+  - Validates that the AI response is strict JSON matching the requested ids before writing to the database.
   - Persists results into `tbl_youtube_transaction_details.translate` and `to_lang`.
 - `GET /youtube/jobs?user_id_token=<token>`
   - Lists jobs by external client token.

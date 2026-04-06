@@ -198,8 +198,10 @@ async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
     response_model=YoutubeTranslateRes,
     summary="Translate Legacy YouTube Transcript",
     description=(
-        "Translate transcript detail rows for a given `youtube_transaction_id` into `to_lang` using OpenAI "
-        "`gpt-4o-mini`, then persist the result into `tbl_youtube_transaction_details.translate` and `to_lang`."
+        "Batch-translate transcript detail rows for a given `youtube_transaction_id` into `to_lang` using a single "
+        "OpenAI `gpt-4o-mini` call. The model must return strict JSON records with `id` and `translate`, the backend "
+        "validates that schema and id set, then persists the result into `tbl_youtube_transaction_details.translate` "
+        "and `to_lang` in one database transaction."
     ),
 )
 async def translate_job(req: TranslateYoutubeJobReq, db: AsyncSession = Depends(get_db)):

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 
 from openai import OpenAI
+from pydantic import BaseModel, TypeAdapter, ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,11 +41,60 @@ def _normalize_lang(value: str) -> str:
     return normalized
 
 
-def _translate_text(client: OpenAI, model: str, text: str, from_lang: str | None, to_lang: str) -> str:
-    if not text.strip():
-        return ""
+class _TranslationRecord(BaseModel):
+    id: int
+    translate: str
 
+
+def _build_translation_prompt(details: list[YoutubeTransactionDetail], from_lang: str | None, to_lang: str) -> str:
     source_label = from_lang or "auto-detected source language"
+    payload = [
+        {
+            "id": detail.id,
+            "message": detail.message,
+        }
+        for detail in details
+    ]
+    return (
+        f"Source language: {source_label}\n"
+        f"Target language: {to_lang}\n"
+        "Translate every item.\n"
+        "Return only a JSON array.\n"
+        'Each item must have exactly: {"id": <number>, "translate": <string>}.\n'
+        "Do not omit or add ids. Do not add explanations or markdown.\n"
+        f"Input items:\n{json.dumps(payload, ensure_ascii=False)}"
+    )
+
+
+def _validate_translation_payload(content: str, expected_ids: set[int]) -> list[_TranslationRecord]:
+    try:
+        decoded = json.loads(content)
+    except json.JSONDecodeError as exc:
+        raise ApiError(502, "INTERNAL_ERROR", f"translation returned invalid json: {exc.msg}") from exc
+
+    try:
+        rows = TypeAdapter(list[_TranslationRecord]).validate_python(decoded)
+    except ValidationError as exc:
+        raise ApiError(502, "INTERNAL_ERROR", f"translation schema validation failed: {exc}") from exc
+
+    returned_ids = [row.id for row in rows]
+    if len(returned_ids) != len(set(returned_ids)):
+        raise ApiError(502, "INTERNAL_ERROR", "translation response contains duplicate ids")
+    if set(returned_ids) != expected_ids:
+        raise ApiError(502, "INTERNAL_ERROR", "translation response ids do not match requested details")
+    return rows
+
+
+def _translate_batch(
+    client: OpenAI,
+    model: str,
+    details: list[YoutubeTransactionDetail],
+    from_lang: str | None,
+    to_lang: str,
+) -> list[_TranslationRecord]:
+    if not details:
+        return []
+
     response = client.chat.completions.create(
         model=model,
         temperature=0,
@@ -52,25 +103,22 @@ def _translate_text(client: OpenAI, model: str, text: str, from_lang: str | None
                 "role": "system",
                 "content": (
                     "You are a translation engine for transcript snippets. "
-                    "Translate the user's text from the stated source language into the target language. "
-                    "Return only the translated text. Do not add notes, quotes, labels, or explanations."
+                    "Return strict JSON only. "
+                    "Preserve the source record ids exactly. "
+                    "Translate naturally into the target language without commentary."
                 ),
             },
             {
                 "role": "user",
-                "content": (
-                    f"Source language: {source_label}\n"
-                    f"Target language: {to_lang}\n"
-                    f"Text:\n{text}"
-                ),
+                "content": _build_translation_prompt(details, from_lang, to_lang),
             },
         ],
     )
     content = response.choices[0].message.content if response.choices else ""
-    translated = (content or "").strip()
-    if not translated:
+    raw_payload = (content or "").strip()
+    if not raw_payload:
         raise ApiError(502, "INTERNAL_ERROR", "translation returned empty content")
-    return translated
+    return _validate_translation_payload(raw_payload, expected_ids={detail.id for detail in details})
 
 
 def _serialize_detail(detail: YoutubeTransactionDetail, base_url: str | None) -> dict:
@@ -119,6 +167,7 @@ async def translate_youtube_transaction(
     model = _translation_model()
     translated_count = 0
     skipped_count = 0
+    pending_details: list[YoutubeTransactionDetail] = []
 
     log_event(
         "YOUTUBE_TRANSLATE_START",
@@ -132,29 +181,36 @@ async def translate_youtube_transaction(
         if detail.to_lang == normalized_to_lang and detail.translate:
             skipped_count += 1
             continue
+        pending_details.append(detail)
 
-        try:
-            translated = _translate_text(
-                client=client,
-                model=model,
-                text=detail.message,
-                from_lang=transaction.language,
-                to_lang=normalized_to_lang,
-            )
-        except ApiError:
-            raise
-        except Exception as exc:
-            log_event(
-                "YOUTUBE_TRANSLATE_DETAIL_FAILED",
-                job_id=youtube_transaction_id,
-                level="error",
-                detail_id=detail.id,
-                seq=detail.seq,
-                to_lang=normalized_to_lang,
-                error=str(exc),
-            )
-            raise ApiError(502, "INTERNAL_ERROR", f"translation failed for detail {detail.id}")
+    translated_rows: list[_TranslationRecord] = []
+    try:
+        translated_rows = _translate_batch(
+            client=client,
+            model=model,
+            details=pending_details,
+            from_lang=transaction.language,
+            to_lang=normalized_to_lang,
+        )
+    except ApiError:
+        raise
+    except Exception as exc:
+        log_event(
+            "YOUTUBE_TRANSLATE_BATCH_FAILED",
+            job_id=youtube_transaction_id,
+            level="error",
+            to_lang=normalized_to_lang,
+            pending_count=len(pending_details),
+            error=str(exc),
+        )
+        raise ApiError(502, "INTERNAL_ERROR", "translation batch failed")
 
+    translations_by_id = {row.id: row.translate.strip() for row in translated_rows}
+
+    for detail in pending_details:
+        translated = translations_by_id.get(detail.id, "")
+        if not translated:
+            raise ApiError(502, "INTERNAL_ERROR", f"translation missing content for detail {detail.id}")
         detail.translate = translated
         detail.to_lang = normalized_to_lang
         detail.updated_at = _utc_now()

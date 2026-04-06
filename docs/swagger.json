@@ -172,7 +172,7 @@
         ],
         "summary":"Refresh Session",
         "description":"Rotate the active access and refresh tokens and return the updated token pair.",
-        "operationId":"refresh_api_v1_auth_refresh_post",
+        "operationId":"refresh_api_v1_auth_refresh_get",
         "responses":{
           "200":{
             "description":"Successful Response",
@@ -192,7 +192,7 @@
         ],
         "summary":"Refresh Session",
         "description":"Rotate the active access and refresh tokens and return the updated token pair.",
-        "operationId":"refresh_api_v1_auth_refresh_post",
+        "operationId":"refresh_api_v1_auth_refresh_get",
         "responses":{
           "200":{
             "description":"Successful Response",
@@ -1993,6 +1993,48 @@
               "application/json":{
                 "schema":{
                   "$ref":"#/components/schemas/YoutubeJobDetailRes"
+                }
+              }
+            }
+          },
+          "422":{
+            "description":"Validation Error",
+            "content":{
+              "application/json":{
+                "schema":{
+                  "$ref":"#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/youtube/translate":{
+      "post":{
+        "tags":[
+          "youtube"
+        ],
+        "summary":"Translate Legacy YouTube Transcript",
+        "description":"Translate transcript detail rows for a given `youtube_transaction_id` into `to_lang` using OpenAI `gpt-4o-mini`, then persist the result into `tbl_youtube_transaction_details.translate` and `to_lang`.",
+        "operationId":"translate_job_youtube_translate_post",
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "$ref":"#/components/schemas/TranslateYoutubeJobReq"
+              }
+            }
+          },
+          "required":true
+        },
+        "responses":{
+          "200":{
+            "description":"Successful Response",
+            "content":{
+              "application/json":{
+                "schema":{
+                  "$ref":"#/components/schemas/YoutubeTranslateRes"
                 }
               }
             }
@@ -4193,6 +4235,28 @@
               }
             ],
             "title":"Url Video"
+          },
+          "translate":{
+            "anyOf":[
+              {
+                "type":"string"
+              },
+              {
+                "type":"null"
+              }
+            ],
+            "title":"Translate"
+          },
+          "to_lang":{
+            "anyOf":[
+              {
+                "type":"string"
+              },
+              {
+                "type":"null"
+              }
+            ],
+            "title":"To Lang"
           }
         },
         "type":"object",
@@ -6256,6 +6320,30 @@
           "voiceId":"sorbet"
         }
       },
+      "TranslateYoutubeJobReq":{
+        "properties":{
+          "youtube_transaction_id":{
+            "type":"integer",
+            "title":"Youtube Transaction Id"
+          },
+          "to_lang":{
+            "type":"string",
+            "maxLength":20,
+            "minLength":2,
+            "title":"To Lang"
+          }
+        },
+        "type":"object",
+        "required":[
+          "youtube_transaction_id",
+          "to_lang"
+        ],
+        "title":"TranslateYoutubeJobReq",
+        "example":{
+          "to_lang":"th",
+          "youtube_transaction_id":42
+        }
+      },
       "TutorAction":{
         "properties":{
           "id":{
@@ -7174,6 +7262,53 @@
           "status"
         ],
         "title":"YoutubeJobRes"
+      },
+      "YoutubeTranslateRes":{
+        "properties":{
+          "youtube_transaction_id":{
+            "type":"integer",
+            "title":"Youtube Transaction Id"
+          },
+          "from_lang":{
+            "anyOf":[
+              {
+                "type":"string"
+              },
+              {
+                "type":"null"
+              }
+            ],
+            "title":"From Lang"
+          },
+          "to_lang":{
+            "type":"string",
+            "title":"To Lang"
+          },
+          "translated_count":{
+            "type":"integer",
+            "title":"Translated Count"
+          },
+          "skipped_count":{
+            "type":"integer",
+            "title":"Skipped Count"
+          },
+          "details":{
+            "items":{
+              "$ref":"#/components/schemas/ClipDetailRes"
+            },
+            "type":"array",
+            "title":"Details"
+          }
+        },
+        "type":"object",
+        "required":[
+          "youtube_transaction_id",
+          "to_lang",
+          "translated_count",
+          "skipped_count",
+          "details"
+        ],
+        "title":"YoutubeTranslateRes"
       }
     }
   },
