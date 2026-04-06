@@ -5,6 +5,7 @@ pydantic-settings==2.4.0
 pyyaml==6.0.2
 
 SQLAlchemy==2.0.32
+greenlet==3.0.3
 asyncpg==0.29.0
 minio==7.2.7
 yt-dlp==2026.03.03

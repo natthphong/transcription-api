@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
@@ -11,9 +11,11 @@ from app.models import (
     AppLessonClip,
     AppLessonTranscriptBlock,
     AppLessonVocabulary,
+    AppReviewSession,
     AppUser,
     AppVideo,
     AppVocabItem,
+    AppVocabReviewHistory,
     YoutubeTransaction,
     YoutubeTransactionDetail,
 )
@@ -547,6 +549,32 @@ async def regenerate_lesson_from_transcript(db: AsyncSession, user: AppUser, les
     if not blocks:
         raise ApiError(409, "TRANSCRIPT_NOT_READY", "transcript not ready")
 
+    existing_item_ids = (
+        await db.execute(
+            select(AppVocabItem.id).where(
+                AppVocabItem.user_id == user.id,
+                AppVocabItem.source_lesson_id == lesson.id,
+            )
+        )
+    ).scalars().all()
+    if existing_item_ids:
+        await db.execute(
+            delete(AppVocabReviewHistory).where(AppVocabReviewHistory.vocab_item_id.in_(existing_item_ids))
+        )
+    await db.execute(
+        update(AppReviewSession)
+        .where(
+            AppReviewSession.user_id == user.id,
+            AppReviewSession.finished_at.is_(None),
+        )
+        .values(
+            finished_at=_utc_now(),
+            queue=[],
+            current_index=0,
+            total_count=0,
+            updated_at=_utc_now(),
+        )
+    )
     await db.execute(delete(AppLessonVocabulary).where(AppLessonVocabulary.lesson_id == lesson.id))
     await db.execute(
         delete(AppVocabItem).where(

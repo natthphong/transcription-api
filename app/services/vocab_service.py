@@ -8,8 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import AppLesson, AppReviewSession, AppUser, AppVocabItem, AppVocabReviewHistory
 from app.services.api import ApiError
 from app.services.constants import FLASHCARD_REVIEW_OPTIONS, loc
-from app.services.formatting import due_label
+from app.services.formatting import due_label, ensure_utc_datetime
 from app.services.lesson_service import get_lesson_detail_for_user
+from app.services.security import generate_token
 
 
 def _utc_now() -> datetime:
@@ -57,7 +58,13 @@ async def _load_due_items(db: AsyncSession, user: AppUser) -> list[AppVocabItem]
             .order_by(AppVocabItem.due_at.asc().nullsfirst(), AppVocabItem.updated_at.desc())
         )
     ).scalars().all()
-    return [item for item in items if item.due_at is None or item.due_at <= now or item.status_id == "difficult"]
+    return [
+        item
+        for item in items
+        if item.due_at is None
+        or (ensure_utc_datetime(item.due_at) or now) <= now
+        or item.status_id == "difficult"
+    ]
 
 
 async def _build_deck(db: AsyncSession, user: AppUser) -> dict:
@@ -110,7 +117,7 @@ async def _ensure_review_session(db: AsyncSession, user: AppUser) -> AppReviewSe
         due_items = [fallback] if fallback else []
 
     session = AppReviewSession(
-        id="session-1",
+        id=generate_token("review-session"),
         user_id=user.id,
         deck_id="deck-french-gastronomy",
         source_label="Lesson vocab",
@@ -232,7 +239,7 @@ async def record_review_answer(db: AsyncSession, user: AppUser, session_id: str,
     item.updated_at = _utc_now()
 
     history = AppVocabReviewHistory(
-        id=f"{session.id}-{item.id}-{int(_utc_now().timestamp())}",
+        id=generate_token("review-history"),
         vocab_item_id=item.id,
         user_id=user.id,
         review_session_id=session.id,

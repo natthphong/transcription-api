@@ -44,6 +44,7 @@ class JsonFormatter(logging.Formatter):
 _logger = logging.getLogger("yt-clipper")
 if not _logger.handlers:
     _logger.setLevel(logging.INFO)
+    _logger.propagate = False
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter())
     _logger.addHandler(handler)

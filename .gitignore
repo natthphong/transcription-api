@@ -30,5 +30,5 @@ archive.zip
 .DS_Store
 deploy.sh
 .codspeed
-
+.venv
 app/config/config.yaml

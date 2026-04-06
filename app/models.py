@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import (
     JSON,
     BigInteger,
     Boolean,
+    Column,
     DateTime,
     Float,
     ForeignKey,
@@ -15,11 +17,29 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+try:
+    from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+    _SQLALCHEMY_14_COMPAT = False
+except ImportError:  # SQLAlchemy 1.4 compatibility
+    from sqlalchemy.orm import declarative_base, relationship
 
+    DeclarativeBase = declarative_base()  # type: ignore[assignment]
+    _SQLALCHEMY_14_COMPAT = True
 
-class Base(DeclarativeBase):
-    pass
+    class _MappedCompat:
+        def __class_getitem__(cls, _item):
+            return Any
+
+    Mapped = _MappedCompat  # type: ignore[assignment]
+
+    def mapped_column(*args, **kwargs):
+        return Column(*args, **kwargs)
+
+if _SQLALCHEMY_14_COMPAT:
+    Base = DeclarativeBase
+else:
+    class Base(DeclarativeBase):
+        pass
 
 
 class YoutubeTransaction(Base):

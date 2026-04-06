@@ -3,6 +3,18 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def ensure_utc_datetime(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def format_duration_label(total_seconds: int) -> str:
     total_seconds = max(0, int(total_seconds))
     minutes, seconds = divmod(total_seconds, 60)
@@ -15,8 +27,9 @@ def format_duration_label(total_seconds: int) -> str:
 def humanize_relative(target: datetime | None, now: datetime | None = None) -> str:
     if target is None:
         return "Recently"
-    now = now or datetime.now(timezone.utc)
-    delta = now - target
+    normalized_target = ensure_utc_datetime(target)
+    normalized_now = ensure_utc_datetime(now) or utc_now()
+    delta = normalized_now - normalized_target
     seconds = max(0, int(delta.total_seconds()))
     minutes = seconds // 60
     hours = minutes // 60
@@ -37,8 +50,9 @@ def due_label(due_at: datetime | None, status_id: str, now: datetime | None = No
         return "Completed"
     if due_at is None:
         return "Today"
-    now = now or datetime.now(timezone.utc)
-    diff_days = (due_at.date() - now.date()).days
+    normalized_due_at = ensure_utc_datetime(due_at)
+    normalized_now = ensure_utc_datetime(now) or utc_now()
+    diff_days = (normalized_due_at.date() - normalized_now.date()).days
     if diff_days <= 0:
         return "Today"
     if diff_days == 1:
