@@ -743,6 +743,15 @@ class CreateYoutubeJobReq(BaseModel):
     type_of_transcription: str | None = None
 
 
+class TranslateYoutubeJobReq(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"youtube_transaction_id": 42, "to_lang": "th"}}
+    )
+
+    youtube_transaction_id: int
+    to_lang: str = Field(min_length=2, max_length=20)
+
+
 class JobTrackRequest(BaseModel):
     model_config = ConfigDict(json_schema_extra={"example": {"job_id": 42, "seq": 5}})
 
@@ -764,6 +773,8 @@ class ClipDetailRes(BaseModel):
     clip_path: Optional[str] = None
     has_clip: bool = False
     url_video: Optional[str] = None
+    translate: Optional[str] = None
+    to_lang: Optional[str] = None
 
 
 class YoutubeJobDetailRes(BaseModel):
@@ -778,6 +789,15 @@ class YoutubeJobDetailRes(BaseModel):
     token_usage: Optional[int] = None
     clip_error_code: Optional[str] = None
     clip_error_message: Optional[str] = None
+    details: List[ClipDetailRes]
+
+
+class YoutubeTranslateRes(BaseModel):
+    youtube_transaction_id: int
+    from_lang: Optional[str] = None
+    to_lang: str
+    translated_count: int
+    skipped_count: int
     details: List[ClipDetailRes]
 
 

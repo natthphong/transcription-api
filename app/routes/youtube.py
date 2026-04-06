@@ -1,15 +1,24 @@
 import asyncio
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.models import YoutubeTransaction, YoutubeTransactionDetail
-from app.schemas import CreateYoutubeJobReq, YoutubeJobRes, YoutubeJobDetailRes, ClipDetailRes, YoutubeJobListItemRes, \
-    JobTrackRequest
+from app.schemas import (
+    ClipDetailRes,
+    CreateYoutubeJobReq,
+    JobTrackRequest,
+    TranslateYoutubeJobReq,
+    YoutubeJobDetailRes,
+    YoutubeJobListItemRes,
+    YoutubeJobRes,
+    YoutubeTranslateRes,
+)
 from app.services.youtube_jobs import process_youtube_job
+from app.services.youtube_translate import translate_youtube_transaction
 from app.config import load_settings
 from typing import Optional
 from app.core.logger import log_event
@@ -164,6 +173,8 @@ async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
             clip_path=r.clip_path,
             has_clip=_has_clip(r.clip_path),
             url_video=_build_url(settings.BaseURL, r.clip_path) if r.clip_path else None,
+            translate=r.translate,
+            to_lang=r.to_lang,
         ))
 
     return YoutubeJobDetailRes(
@@ -180,3 +191,16 @@ async def get_job(job_id: int, db: AsyncSession = Depends(get_db)):
         clip_error_message=job.clip_error_message,
         details=details
     )
+
+
+@router.post(
+    "/translate",
+    response_model=YoutubeTranslateRes,
+    summary="Translate Legacy YouTube Transcript",
+    description=(
+        "Translate transcript detail rows for a given `youtube_transaction_id` into `to_lang` using OpenAI "
+        "`gpt-4o-mini`, then persist the result into `tbl_youtube_transaction_details.translate` and `to_lang`."
+    ),
+)
+async def translate_job(req: TranslateYoutubeJobReq, db: AsyncSession = Depends(get_db)):
+    return await translate_youtube_transaction(db, req.youtube_transaction_id, req.to_lang)

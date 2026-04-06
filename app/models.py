@@ -91,6 +91,8 @@ class YoutubeTransactionDetail(Base):
     start_ms: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     end_ms: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     clip_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    translate: Mapped[str | None] = mapped_column(Text, nullable=True)
+    to_lang: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     transaction = relationship("YoutubeTransaction", back_populates="details")
 

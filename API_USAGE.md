@@ -274,6 +274,10 @@ LIFF profile sync example:
 
 - `POST /youtube/jobs`
   - Creates a legacy processing job and starts asynchronous transcript+clip generation.
+- `POST /youtube/translate`
+  - Translates transcript detail rows for one legacy YouTube job into a target language.
+  - Uses OpenAI `gpt-4o-mini`.
+  - Persists results into `tbl_youtube_transaction_details.translate` and `to_lang`.
 - `GET /youtube/jobs?user_id_token=<token>`
   - Lists jobs by external client token.
 - `GET /youtube/jobs/{jobId}`
@@ -292,6 +296,15 @@ Legacy job request example:
   "tolerance_seconds": 1,
   "title": "Travel Listening Practice",
   "type_of_transcription": "openai_transcribe"
+}
+```
+
+Legacy translate request example:
+
+```json
+{
+  "youtube_transaction_id": 42,
+  "to_lang": "th"
 }
 ```
 
