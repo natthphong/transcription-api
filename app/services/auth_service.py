@@ -7,7 +7,6 @@ from fastapi import Request, Response
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import load_settings
 from app.models import AppLineAccount, AppUser, AppUserSession
 from app.schemas import AuthSession, UserProfile
 from app.services.api import ApiError
@@ -205,8 +204,7 @@ async def resolve_session(
             )
         ).scalar_one_or_none()
 
-    settings = load_settings()
-    if not session and allow_compatibility_fallback and settings.Core and settings.Core.compatibilityUseLatestSession:
+    if not session and allow_compatibility_fallback:
         return await _resolve_public_session_context(db)
 
     if not session:
